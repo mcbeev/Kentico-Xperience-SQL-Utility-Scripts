@@ -6,6 +6,7 @@
 /* Author: Brian McKeiver (mcbeev@gmail.com)*/
 /* Revision: 1.0                            */
 /* Comment: Removing 10k rows took ~ 8 secs    */
+-- Read more at: https://www.mcbeev.com/Blog/February-2015/Ensure-Your-Kentico-EMS-Site-Is-Running-At-Peak-Performance
 
 DECLARE @imax        INT
 DECLARE @i            INT
