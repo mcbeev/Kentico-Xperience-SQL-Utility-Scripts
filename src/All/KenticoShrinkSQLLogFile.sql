@@ -1,3 +1,10 @@
+/* KenticoShrinkSQLLogFile.sql				  */
+/* Goal: Shrink your SQL Log file			  */
+/* Description: reclaims space by shrinking	  */
+/*  the SQL ldf file (log file)				  */
+/* Intended Kentico Verison: Any and all      */
+/* Author: Brian McKeiver (mcbeev@gmail.com)  */
+/* Revision: 1.0                              */
 
 /* For reference, show recovery models of all DBs */
 SELECT [name], [recovery_model_desc] FROM sys.databases
