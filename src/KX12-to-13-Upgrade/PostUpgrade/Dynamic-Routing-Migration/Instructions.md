@@ -1,0 +1,2 @@
+# Dynamic Routing
+Please see instructions on the [Dynamic Routing](https://github.com/KenticoDevTrev/DynamicRouting) Github page for scripts and tools to help migrate Dynamic Routing URL Slugs and alternative Urls, and scripts on how to remove Dynamic Routing once fully upgraded.
