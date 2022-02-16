@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------------------------------------------------
------------  Container to Coupled Page Type Converter for KX13 (by Trevor Fayas - github.com/kenticodevtrev  -------------
+-----------  Container to Coupled Page Type Converter for KX12 (by Trevor Fayas - github.com/kenticodevtrev  -------------
 --------------------------------------------------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------------------------------------------------
--- KX13 does not have Containered Page Types, generally (they exist but you can't create them).
+-- KX13 does not have Containered Page Types, generally (they exist but you can't create them).  
 -- Coupled with this, many Containered page types (such as folders) in KX12 still were used as part of the URL structure
 -- generation.  Since during the KX12 to KX13 upgrade, any page types with an empty or null ClassURLPattern have the URL
 -- featured disabled and are not included thus in URL generation for any child elements, this can cause issues with old
@@ -11,10 +11,9 @@
 -- 2020 and May elements are folders (or any page type without a ClassURLPattern), KX 12 will make the url 
 -- /Articles/Hello instead of it's original URL of /Articles/2020/May/Hello
 -- 
--- Whlie it is best to fix this before upgrade, sometimes that's no longer an option.  This script will switch the Container
--- page type to a Coupled Page Type, create the binding tables, handle initial Url Generation.  If you need help 'cleaning'
--- up the URLs after you do this to try to fix existing issues, please contact tfayas@hbs.net, i have a script that can
--- rebuild the URLs in KX13.
+-- To Fix this, before your upgrade, you should convert Container Page Types to normal Content Only Coupled Page Types,
+-- and have the ClassURLPattern set to {% NodeAliasPath %}.  This script does this for you, adding a "Name" Field and 
+-- proper joining tables.
 --------------------------------------------------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------------------------------------------------
@@ -22,13 +21,13 @@
 ---------------------- Also in Kentico do a System -> Clear Cache / Restart Application after-----------------------------
 --------------------------------------------------------------------------------------------------------------------------
 
--- MODIFY THESE 4
+-- MODIFY THESE 3 ONLY
+-- Example for class Generic.Folder
 declare @Namespace nvarchar(100) = 'Generic'
 declare @Name nvarchar(100) = 'Folder'
-declare @CulturePrefix bit = 1;
-declare @NoPrefixOnDefaultCulture bit = 1;
+declare @EnsureUrlPattern bit = 1; -- Adds {% NodeAliasPath %} to the ClassURLPattern
 
--- Do not modify below
+-- DO NOT MODIFY BELOW
 declare @ClassName nvarchar(200);
 declare @TableName nvarchar(200);
 declare @FormIDFieldGuid nvarchar(50);
@@ -69,23 +68,23 @@ ClassXmlSchema = '<?xml version="1.0" encoding="utf-8"?>
     </xs:complexType>
     <xs:unique name="Constraint1" msdata:PrimaryKey="true">
       <xs:selector xpath=".//'+@TableName+'" />
-      <xs:field xpath="'+@Name+'ID" />
+      <xs:field xpath="Folder2ID" />
     </xs:unique>
   </xs:element>
 </xs:schema>',
-ClassFormDefinition = '<form version="2"><field column="'+@Name+'ID" columntype="integer" guid="'+@FormIDFieldGuid+'" isPK="true"><properties><fieldcaption>'+@Name+'ID</fieldcaption></properties></field><field column="Name" columnsize="200" columntype="text" guid="'+@FormNameFieldGuid+'" visible="true"><properties><fieldcaption>Name</fieldcaption></properties><settings><AutoCompleteEnableCaching>False</AutoCompleteEnableCaching><AutoCompleteFirstRowSelected>False</AutoCompleteFirstRowSelected><AutoCompleteShowOnlyCurrentWordInCompletionListItem>False</AutoCompleteShowOnlyCurrentWordInCompletionListItem><controlname>TextBoxControl</controlname><FilterMode>False</FilterMode><Trim>False</Trim></settings></field></form>',
+ClassFormDefinition = '<form version="2"><field column="'+@Name+'ID" columntype="integer" guid="'+@FormIDFieldGuid+'" isPK="true" publicfield="false"><properties><fieldcaption>'+@Name+'ID</fieldcaption></properties><settings><controlname>labelcontrol</controlname></settings></field><field column="Name" columnsize="200" columntype="text" guid="'+@FormNameFieldGuid+'" publicfield="false" visible="true"><properties><fieldcaption>Name</fieldcaption></properties><settings><AutoCompleteEnableCaching>False</AutoCompleteEnableCaching><AutoCompleteFirstRowSelected>False</AutoCompleteFirstRowSelected><AutoCompleteShowOnlyCurrentWordInCompletionListItem>False</AutoCompleteShowOnlyCurrentWordInCompletionListItem><controlname>TextBoxControl</controlname><FilterMode>False</FilterMode><Trim>False</Trim></settings></field></form>',
 ClassNodeNameSource = 'Name',
 ClassTableName = @TableName,
 ClassShowTemplateSelection = null,
 ClassIsMenuItemType = null,
 ClassSearchTitleColumn = 'DocumentName',
+ClassSearchContentColumn='DocumentContent',
 ClassSearchCreationDateColumn = 'DocumentCreatedWhen', 
-ClassSearchSettings = '<search><item azurecontent="False" azureretrievable="True" azuresearchable="False" content="False" id="'+@FormIDSearchFieldGuid+'" name="'+@Name+'ID" searchable="True" tokenized="False" /><item azurecontent="True" azureretrievable="False" azuresearchable="True" content="True" id="'+@FormNameSearchFieldGuid+'" name="Name" searchable="False" tokenized="True" /></search>',
+ClassSearchSettings = '<search><item azurecontent="True" azureretrievable="False" azuresearchable="True" content="True" id="'+@FormNameSearchFieldGuid+'" name="Name" searchable="False" tokenized="True" /><item azurecontent="False" azureretrievable="True" azuresearchable="False" content="False" id="'+@FormIDSearchFieldGuid+'" name="'+@Name+'ID" searchable="True" tokenized="False" /></search>',
+ClassInheritsFromClassID = 0,
 ClassSearchEnabled = 1,
-ClassUsesPageBuilder = 0,
-ClassIsNavigationItem = 0,
-ClassHasURL = 1,
-ClassHasMetadata = 0
+ClassIsContentOnly = 1,
+ClassURLPattern = case when @EnsureUrlPattern = 1 then '{% NodeAliasPath %}' else ClassURLPattern end
 where ClassName = @ClassName
 
 -- Create table
@@ -99,7 +98,6 @@ CREATE TABLE [dbo].['+@TableName+'](
 	['+@Name+'ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
-
 ALTER TABLE [dbo].['+@TableName+'] ADD  CONSTRAINT [DEFAULT_'+@TableName+'_Name]  DEFAULT (N'''') FOR [Name]'
 exec(@CreateTable);
 
@@ -112,31 +110,19 @@ declare @TableName nvarchar(200);
 declare @documentid int;
 declare @documentname nvarchar(200);
 declare @documentculture nvarchar(10);
-declare @NodeGuidPostfix nvarchar(50);
-declare @UrlPath nvarchar(500);
-declare @UrlPathCulturePrefix nvarchar(50);
-declare @UrlPathPostfix nvarchar(100);
 declare @NodeID int;
 declare @SiteID int;
 declare @newrowid int;
-declare @UrlExistingMatches int;
-declare @UrlPathComplete nvarchar(500);
-
 set @ClassName = '''+@Namespace+'.'+@Name+'''
 set @TableName = '''+@Namespace+'_'+@Name+'''
-
 declare contenttable_cursor cursor for
-
  select * from (
   select
   COALESCE(D.DocumentID, NoCultureD.DocumentID) as DocumentID,
 COALESCE(D.DocumentName, NoCultureD.DocumentName) as DocumentName,
  C.CultureCode,
 NodeID, 
-NodeSiteID, 
-RIGHT(NodeAliasPath, len(NodeAliasPath)-1) as UrlPath,
-case when 1='+Convert(nvarchar(1), @CulturePrefix)+' and (0='+Convert(nvarchar(1), @NoPrefixOnDefaultCulture)+' or C.CultureCode <> SiteDefaultVisitorCulture) then C.CultureCode+''/'' else '''' end as CulturePrefix,
-LOWER(''-''+REPLACE(Convert(nvarchar(100), NodeGuid),''-'', '''')) as NodeGuidPostfix
+NodeSiteID
   from  CMS_Site S
     left join CMS_SiteCulture SC on SC.SiteID = S.SiteID
 	left join CMS_Culture C on C.CultureID = SC.CultureID
@@ -146,14 +132,11 @@ LOWER(''-''+REPLACE(Convert(nvarchar(100), NodeGuid),''-'', '''')) as NodeGuidPo
 	left outer join CMS_Document NoCultureD on NoCultureD.DocumentNodeID = NodeID
 	where ClassName = @ClassName
 	) cultureAcross
-	group by DocumentID, DocumentName, CultureCode, NodeID, NodeSiteID, UrlPath, CulturePrefix, NodeGuidpostFix
-	order by UrlPath
-
+	group by DocumentID, DocumentName, CultureCode, NodeID, NodeSiteID
+	order by DocumentID
 open contenttable_cursor
-fetch next from contenttable_cursor into @documentid, @documentname, @documentculture, @NodeID, @SiteID, @UrlPath, @UrlPathCulturePrefix, @UrlPathPostfix
-
+fetch next from contenttable_cursor into @documentid, @documentname, @documentculture, @NodeID, @SiteID
 WHILE @@FETCH_STATUS = 0  BEGIN
-
 	-- insert into binding table --
 	INSERT INTO [dbo].['+@TableName+'] ([Name]) VALUES (@documentname)
 	
@@ -164,41 +147,7 @@ WHILE @@FETCH_STATUS = 0  BEGIN
 	-- update also history --
 	update CMS_VersionHistory set NodeXML = replace(NodeXML, ''<DocumentID>''+CONVERT(nvarchar(10), @documentid)+''</DocumentID>'', ''<DocumentID>''+CONVERT(nvarchar(10), @documentid)+''</DocumentID><DocumentForeignKeyValue>''+CONVERT(nvarchar(10), @newrowid)+''</DocumentForeignKeyValue>'') where DocumentID = @documentid
 	
-	---------------------------------
-	-- Create initial UrlPagePaths --
-	---------------------------------
-	set @UrlPathComplete = @UrlPathCulturePrefix+@UrlPath;
-
-	-- Add guid postfix if match on the page url path exists.
-	set @UrlExistingMatches = (select count(*) from CMS_PageUrlPath where PageUrlPathUrlPath = @UrlPathCulturePrefix+@UrlPath)
-	if @URLExistingMatches > 0 begin
-		set @UrlPathComplete = @UrlPathComplete+@UrlPathPostfix
-	end
-
-	-- If conflict on alternative url, then handle as well
-	set @UrlExistingMatches = (select count(*) from CMS_AlternativeUrl where CONVERT(NVARCHAR(64), HASHBYTES(''SHA2_256'', LOWER(AlternativeUrlUrl)), 2) = CONVERT(VARCHAR(64), HASHBYTES(''SHA2_256'', LOWER(@UrlPathComplete)), 2) and AlternativeUrlSiteID = @SiteID)
-	if @URLExistingMatches > 0 begin
-		set @UrlPathComplete = @UrlPathComplete+''-''+Convert(nvarchar(100), NewID())
-	end
-
-	INSERT INTO [dbo].[CMS_PageUrlPath]
-           ([PageUrlPathGUID]
-           ,[PageUrlPathCulture]
-           ,[PageUrlPathNodeID]
-           ,[PageUrlPathUrlPath]
-           ,[PageUrlPathUrlPathHash]
-           ,[PageUrlPathSiteID]
-           ,[PageUrlPathLastModified])
-     VALUES
-           (NEWID()            
-		   ,@documentculture
-		   ,@NodeID
-           ,@UrlPathComplete
-           ,CONVERT(VARCHAR(64), HASHBYTES(''SHA2_256'', LOWER(@UrlPathComplete)), 2)
-           ,@SiteID
-           ,GETDATE())
-
-	FETCH NEXT FROM contenttable_cursor into @documentid, @documentname, @documentculture, @NodeID, @SiteID, @UrlPath, @UrlPathCulturePrefix, @UrlPathPostfix
+	FETCH NEXT FROM contenttable_cursor into @documentid, @documentname, @documentculture, @NodeID, @SiteID
 END
 Close contenttable_cursor
 DEALLOCATE contenttable_cursor'
