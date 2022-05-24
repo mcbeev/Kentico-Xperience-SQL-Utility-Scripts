@@ -39,3 +39,8 @@ delete from CMS_VersionHistory where VersionHistoryID in (
 	D.DocumentCheckedOutVersionHistoryID <> VH.VersionHistoryID and
 	D.DocumentPublishedVersionHistoryID  <> VH.VersionHistoryID
 )
+
+-- Remove attachment history for all versions no longer found
+delete from CMS_AttachmentHistory where AttachmentHistoryID not in (
+	select VAH.AttachmentHistoryID from CMS_VersionAttachment VAH
+)
