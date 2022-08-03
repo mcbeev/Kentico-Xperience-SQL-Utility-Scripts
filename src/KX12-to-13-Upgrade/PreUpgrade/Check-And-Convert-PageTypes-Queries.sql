@@ -50,7 +50,7 @@ update CMS_Class set ClassURLPattern = '{% NodeAliasPath %}', ClassIsContentOnly
 --------------------------------------------------------------------------------------------------------------------------
 -- This query simply adds the {% NodeAliasPath %} to the ClassURLPattern, take the classes from the previous query and plug them in here, assuming NeedsContainerConversion = 0
 --------------------------------------------------------------------------------------------------------------------------
-update CMS_Class set ClassURLPattern = '{% NodeAliasPath %}' where ClassIsDocumentType = 1 and ClassIsCoupledClass = 1 and Coalesce(ClassURLPattern, '') is null
+update CMS_Class set ClassURLPattern = '{% NodeAliasPath %}' where ClassIsDocumentType = 1 and ClassIsCoupledClass = 1 and Nullif(ClassURLPattern, '') is null
  and ClassName in ('my.class')
 
 

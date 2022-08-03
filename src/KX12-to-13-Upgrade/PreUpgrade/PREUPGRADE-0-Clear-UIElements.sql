@@ -357,7 +357,11 @@
           FETCH NEXT FROM @elementCursor INTO @elementIdentifier;
           WHILE @@FETCH_STATUS = 0
           BEGIN
-		  
+		  delete from CMS_RoleUIElement where CMS_RoleUIElement.ElementID in (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementGUID = @elementIdentifier)
+			delete from CMS_RoleUIElement where CMS_RoleUIElement.ElementID in (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementParentID in (Select lvl2.ElementID from CMS_UIElement lvl2 where lvl2.ElementGUID = @elementIdentifier))
+			delete from CMS_RoleUIElement where CMS_RoleUIElement.ElementID in (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementParentID in  (Select lvl2.ElementID from CMS_UIElement lvl2 where ElementParentID in (Select lvl3.ElementID from CMS_UIElement lvl3 where lvl3.ElementGUID = @elementIdentifier)))
+			delete from CMS_RoleUIElement where CMS_RoleUIElement.ElementID in (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementParentID in  (Select lvl2.ElementID from CMS_UIElement lvl2 where ElementParentID in (Select lvl3.ElementID from CMS_UIElement lvl3 where lvl3.ElementParentID in (Select lvl4.ElementID from CMS_UIElement lvl4 where lvl4.ElementGUID = @elementIdentifier))))
+			
 			delete from CMS_UIElement where ElementParentID in (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementParentID in  (Select lvl2.ElementID from CMS_UIElement lvl2 where ElementParentID in (Select lvl3.ElementID from CMS_UIElement lvl3 where lvl3.ElementGUID = @elementIdentifier)))
 			delete from CMS_UIElement where ElementParentID  in (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementParentID in (Select lvl2.ElementID from CMS_UIElement lvl2 where lvl2.ElementGUID = @elementIdentifier))
 			delete from CMS_UIElement where ElementParentID in  (Select lvl1.ElementID from CMS_UIElement lvl1 where lvl1.ElementGUID = @elementIdentifier)

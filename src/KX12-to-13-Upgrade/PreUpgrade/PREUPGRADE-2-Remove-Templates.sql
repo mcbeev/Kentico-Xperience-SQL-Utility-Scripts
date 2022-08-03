@@ -14,7 +14,7 @@ update CMS_Tree set NodeTemplateID = null
 update CMS_Document set DocumentPageTemplateID = null
 update CMS_Class set ClassDefaultPageTemplateID = null
 DECLARE @oldTemplates TABLE (PageTemplateID int)
-INSERT INTO @oldTemplates SELECT PageTemplateID FROM [CMS_PageTemplate] WHERE [PageTemplateType] IN ('portal', 'aspx', 'aspxportal')
+INSERT INTO @oldTemplates SELECT PageTemplateID FROM [CMS_PageTemplate] WHERE [PageTemplateType] IN ('portal', 'aspx', 'aspxportal') and PageTemplateID not in (select ElementPageTemplateID from CMS_UIElement where ElementPageTemplateID is not null)
 
 DELETE FROM [CMS_MetaFile]
 	WHERE [MetaFileObjectType] = 'cms.pagetemplate'
@@ -29,5 +29,8 @@ DELETE FROM [CMS_MetaFile]
 	select PT.PageTemplateID FROM [CMS_PageTemplate] PT
 	WHERE PT.[PageTemplateID] IN (SELECT PageTemplateID FROM @oldTemplates)
 	)
+	
+	delete from CMS_PageTemplateScope where PageTemplateScopeTemplateID in (SELECT PageTemplateID FROM @oldTemplates)
+	
 DELETE FROM [CMS_PageTemplate]
 	WHERE [PageTemplateID] IN (SELECT PageTemplateID FROM @oldTemplates)
