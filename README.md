@@ -2,4 +2,4 @@
 
 A collection of SQL Scripts used to help maintain and work with Kentico Xperience (Kentico CMS) databases. But remember, with great power comes great responsibility. These scripts are only tested in a few environments. Make sure to test them out first in your development environment and please be sure to create a database backup before running for real.
 
-A few more details can be found at [https://www.mcbeev.com/Blog/August-2020/Kentico-Xperience-SQL-Database-Scripts](https://www.mcbeev.com/Blog/August-2020/Kentico-Xperience-SQL-Database-Scripts)
+A few more details can be found at [https://www.mcbeev.com/Kentico-Xperience-SQL-Database-Scripts](https://www.mcbeev.com/Kentico-Xperience-SQL-Database-Scripts)
